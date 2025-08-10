@@ -1,0 +1,200 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+    cursor: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: #000000;
+    /* Prevent any selection or dragging */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+}
+
+/* Custom cursor for when mouse is outside canvas */
+.custom-cursor {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background-color: white;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    display: none;
+}
+
+.container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000000;
+    /* Prevent any dragging or selection */
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+    /* Allow pointer events to pass through to canvas */
+    pointer-events: none;
+}
+
+#revealCanvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    z-index: 20;
+    /* Ensure canvas can receive all mouse events */
+    cursor: none;
+    /* Initially visible for testing */
+    opacity: 1;
+    background-color: transparent;
+}
+
+.background-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: calc(90% - 48px); /* Account for frame border (24px on each side) */
+    max-height: calc(90% - 48px); /* Account for frame border (24px on each side) */
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    z-index: 1;
+    /* Make image visible but non-interactive */
+    opacity: 1;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    /* Prevent dragging */
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    user-drag: none;
+}
+
+/* Canvas frame overlay - simple and clean */
+.canvas-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    pointer-events: none;
+    border: 2px solid #ffffff;
+    border-radius: 4px;
+    /* Default size when no image is loaded - larger to accommodate images */
+    width: 800px;
+    height: 600px;
+}
+
+/* Enhanced canvas frame on hover */
+.canvas-frame:hover {
+    border-color: #cccccc;
+}
+
+/* Inner canvas border - simple and clean */
+.canvas-inner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 3;
+    pointer-events: none;
+    border: 1px solid #ffffff;
+    border-radius: 2px;
+    /* Default size when no image is loaded - larger to accommodate images */
+    width: 796px;
+    height: 596px;
+}
+
+.controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    font-size: 14px;
+}
+
+.controls h3 {
+    margin-bottom: 15px;
+    color: #4A90E2;
+}
+
+.reveal-progress {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #4A90E2;
+    font-weight: bold;
+}
+
+.reveal-progress p {
+    margin: 0;
+    text-align: center;
+}
+
+.info {
+    margin-top: 15px;
+    font-size: 11px;
+    color: #999;
+}
+
+.info p {
+    margin: 5px 0;
+    line-height: 1.4;
+}
+
+.loading {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 1001;
+}
+
+.spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4A90E2;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}

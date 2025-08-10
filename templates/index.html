@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Reveal - Canvas Effect</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <img id="backgroundImage" class="background-image" style="display: none;">
+        
+        <!-- Canvas frame elements -->
+        <div class="canvas-frame" id="canvasFrame" style="display: none;"></div>
+        <div class="canvas-inner" id="canvasInner" style="display: none;"></div>
+        
+        <canvas id="revealCanvas"></canvas>
+    </div>
+
+    <!-- Custom cursor for when mouse is outside canvas -->
+    <div class="custom-cursor" id="customCursor"></div>
+
+    <div class="controls">
+        <h3>Revelo</h3>
+        <div class="reveal-progress">
+            <p>🎯 <span id="revealPercentage">0%</span> revealed</p>
+        </div>
+        <div class="info">
+            <p>⏰ New images every 24 hours</p>
+            <p>🔄 Move your mouse to reveal the image</p>
+            <button id="testReveal" style="margin-top: 10px; padding: 5px 10px; background: #4A90E2; color: white; border: none; border-radius: 5px; cursor: pointer;">Test Reveal</button>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
