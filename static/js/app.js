@@ -14,9 +14,33 @@ let isMouseDown = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 
+// Touch tracking for mobile devices
+let isTouchActive = false;
+let lastTouchX = 0;
+let lastTouchY = 0;
+
 // Canvas-relative mouse coordinates
 let canvasMouseX = 0;
 let canvasMouseY = 0;
+
+// Helper function to get coordinates from mouse or touch events
+function getEventCoordinates(e) {
+    if (e.touches && e.touches.length > 0) {
+        // Touch event
+        const touch = e.touches[0];
+        return { x: touch.clientX, y: touch.clientY };
+    } else {
+        // Mouse event
+        return { x: e.clientX, y: e.clientY };
+    }
+}
+
+// Helper function to detect mobile devices
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           ('ontouchstart' in window) ||
+           (navigator.maxTouchPoints > 0);
+}
 
 // Custom cursor element
 let customCursor = null;
@@ -77,21 +101,27 @@ function handleResize() {
 
 // Handle mouse movement
 function handleMouseMove(e) {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
+    // Skip if this is a touch event and touch is active (let touch handlers deal with it)
+    if (e.touches && e.touches.length > 0 && isTouchActive) {
+        return;
+    }
+    
+    const coords = getEventCoordinates(e);
+    mouseX = coords.x;
+    mouseY = coords.y;
     
     // Update custom cursor position
     if (customCursor) {
-        customCursor.style.left = e.clientX + 'px';
-        customCursor.style.top = e.clientY + 'px';
+        customCursor.style.left = coords.x + 'px';
+        customCursor.style.top = coords.y + 'px';
     }
     
     // Only process reveals if mouse is over the image area
     if (backgroundImage.style.display !== 'none') {
         const imgRect = backgroundImage.getBoundingClientRect();
         
-        if (e.clientX >= imgRect.left && e.clientX <= imgRect.right && 
-            e.clientY >= imgRect.top && e.clientY <= imgRect.bottom) {
+        if (coords.x >= imgRect.left && coords.x <= imgRect.right && 
+            coords.y >= imgRect.top && coords.y <= imgRect.bottom) {
             
             // Hide custom cursor when over canvas
             if (customCursor) {
@@ -99,8 +129,8 @@ function handleMouseMove(e) {
             }
             
             // Convert to canvas-relative coordinates
-            canvasMouseX = e.clientX - imgRect.left;
-            canvasMouseY = e.clientY - imgRect.top;
+            canvasMouseX = coords.x - imgRect.left;
+            canvasMouseY = coords.y - imgRect.top;
             
             // Add permanent reveal while moving (for drag effect)
             if (isMouseDown) {
@@ -138,16 +168,22 @@ function handleMouseMove(e) {
 
 // Handle mouse down (for permanent reveals)
 function handleMouseDown(e) {
+    // Skip if this is a touch event and touch is active (let touch handlers deal with it)
+    if (e.touches && e.touches.length > 0 && isTouchActive) {
+        return;
+    }
+    
     isMouseDown = true;
     
     // Only add permanent reveal if mouse is over the image area
     if (backgroundImage.style.display !== 'none') {
         const imgRect = backgroundImage.getBoundingClientRect();
+        const coords = getEventCoordinates(e);
         
-        if (e.clientX >= imgRect.left && e.clientX <= imgRect.right && 
-            e.clientY >= imgRect.top && e.clientY <= imgRect.bottom) {
-            const canvasX = e.clientX - imgRect.left;
-            const canvasY = e.clientY - imgRect.top;
+        if (coords.x >= imgRect.left && coords.x <= imgRect.right && 
+            coords.y >= imgRect.top && coords.y <= imgRect.bottom) {
+            const canvasX = coords.x - imgRect.left;
+            const canvasY = coords.y - imgRect.top;
             addPermanentReveal(canvasX, canvasY);
         }
     }
@@ -156,6 +192,74 @@ function handleMouseDown(e) {
 // Handle mouse up
 function handleMouseUp() {
     isMouseDown = false;
+}
+
+// Handle touch start
+function handleTouchStart(e) {
+    e.preventDefault(); // Prevent default touch behavior (scrolling, zooming)
+    isTouchActive = true;
+    
+    if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        lastTouchX = touch.clientX;
+        lastTouchY = touch.clientY;
+        
+        // Only add permanent reveal if touch is over the image area
+        if (backgroundImage.style.display !== 'none') {
+            const imgRect = backgroundImage.getBoundingClientRect();
+            
+            if (touch.clientX >= imgRect.left && touch.clientX <= imgRect.right && 
+                touch.clientY >= imgRect.top && touch.clientY <= imgRect.bottom) {
+                const canvasX = touch.clientX - imgRect.left;
+                const canvasY = touch.clientY - imgRect.top;
+                addPermanentReveal(canvasX, canvasY);
+            }
+        }
+    }
+}
+
+// Handle touch move
+function handleTouchMove(e) {
+    e.preventDefault(); // Prevent default touch behavior (scrolling, zooming)
+    
+    if (e.touches.length > 0 && isTouchActive) {
+        const touch = e.touches[0];
+        const currentX = touch.clientX;
+        const currentY = touch.clientY;
+        
+        // Only process reveals if touch is over the image area
+        if (backgroundImage.style.display !== 'none') {
+            const imgRect = backgroundImage.getBoundingClientRect();
+            
+            if (currentX >= imgRect.left && currentX <= imgRect.right && 
+                currentY >= imgRect.top && currentY <= imgRect.bottom) {
+                
+                const canvasX = currentX - imgRect.left;
+                const canvasY = currentY - imgRect.top;
+                
+                // Add reveal at current position
+                addRevealWhileMoving(canvasX, canvasY);
+                
+                // Fill gaps between touch positions for smooth effect
+                if (lastTouchX !== 0 && lastTouchY !== 0) {
+                    const lastCanvasX = lastTouchX - imgRect.left;
+                    const lastCanvasY = lastTouchY - imgRect.top;
+                    fillGapsBetweenPositions(lastCanvasX, lastCanvasY, canvasX, canvasY);
+                }
+                
+                lastTouchX = currentX;
+                lastTouchY = currentY;
+            }
+        }
+    }
+}
+
+// Handle touch end
+function handleTouchEnd(e) {
+    e.preventDefault(); // Prevent default touch behavior
+    isTouchActive = false;
+    lastTouchX = 0;
+    lastTouchY = 0;
 }
 
 // Add permanent reveal at position
@@ -389,6 +493,15 @@ function init() {
     // Get custom cursor element
     customCursor = document.getElementById('customCursor');
     
+    // Hide custom cursor on mobile devices
+    if (isMobileDevice()) {
+        if (customCursor) {
+            customCursor.style.display = 'none';
+        }
+        // Add mobile-specific class to body for CSS targeting
+        document.body.classList.add('mobile-device');
+    }
+    
     // Set up canvas
     initCanvas();
     
@@ -417,32 +530,20 @@ function init() {
     canvas.addEventListener('mousedown', handleMouseDown, { passive: true });
     canvas.addEventListener('mouseup', handleMouseUp, { passive: true });
     
+    // Add touch event listeners for mobile devices
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
     // Also listen for mouse events on the document for better coverage
     document.addEventListener('mousemove', handleMouseMove, { passive: true });
     document.addEventListener('mousedown', handleMouseDown, { passive: true });
     document.addEventListener('mouseup', handleMouseUp, { passive: true });
     
-    // Add test reveal button event listener
-    const testButton = document.getElementById('testReveal');
-    if (testButton) {
-        testButton.addEventListener('click', function() {
-            if (backgroundImage.style.display !== 'none') {
-                // Add a test reveal in the center of the canvas
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                addPermanentReveal(centerX, centerY);
-
-                drawRevealMask(); // Force immediate redraw
-            } else {
-                // Test with current canvas dimensions
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                addPermanentReveal(centerX, centerY);
-
-                drawRevealMask(); // Force immediate redraw
-            }
-        });
-    }
+    // Also listen for touch events on the document for better coverage
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd, { passive: false });
     
     // Start animation loop
     animate(0);

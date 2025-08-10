@@ -21,6 +21,13 @@ body {
     -moz-user-drag: none;
     -o-user-drag: none;
     user-drag: none;
+    /* Prevent touch scrolling and zooming on mobile */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent overscroll bounce on mobile */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Custom cursor for when mouse is outside canvas */
@@ -53,6 +60,10 @@ body {
     user-drag: none;
     /* Allow pointer events to pass through to canvas */
     pointer-events: none;
+    /* Prevent touch scrolling and zooming on mobile */
+    touch-action: none;
+    /* Prevent overscroll bounce on mobile */
+    overscroll-behavior: none;
 }
 
 #revealCanvas {
@@ -68,6 +79,8 @@ body {
     /* Initially visible for testing */
     opacity: 1;
     background-color: transparent;
+    /* Prevent touch scrolling and zooming on mobile */
+    touch-action: none;
 }
 
 .background-image {
@@ -94,6 +107,8 @@ body {
     -moz-user-drag: none;
     -o-user-drag: none;
     user-drag: none;
+    /* Prevent touch scrolling and zooming on mobile */
+    touch-action: none;
 }
 
 /* Canvas frame overlay - simple and clean */
@@ -197,4 +212,42 @@ body {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Mobile device optimizations */
+.mobile-device .custom-cursor {
+    display: none !important;
+}
+
+.mobile-device {
+    cursor: auto; /* Show default cursor on mobile */
+}
+
+.mobile-device #revealCanvas {
+    cursor: auto; /* Show default cursor on mobile */
+}
+
+/* Prevent text selection and context menu on mobile */
+.mobile-device * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Ensure touch events work properly on mobile */
+@media (max-width: 768px) {
+    body {
+        cursor: auto;
+    }
+    
+    #revealCanvas {
+        cursor: auto;
+    }
+    
+    .custom-cursor {
+        display: none !important;
+    }
 }
