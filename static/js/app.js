@@ -19,6 +19,11 @@ let isTouchActive = false;
 let lastTouchX = 0;
 let lastTouchY = 0;
 
+// Throttling for mouse movement outside canvas area
+let lastOutsideUpdate = 0;
+let outsideUpdateThrottle = 32; // ~30fps for outside updates (smoother and less CPU intensive)
+let isMouseOutsideCanvas = false;
+
 // Canvas-relative mouse coordinates
 let canvasMouseX = 0;
 let canvasMouseY = 0;
@@ -110,18 +115,17 @@ function handleMouseMove(e) {
     mouseX = coords.x;
     mouseY = coords.y;
     
-    // Update custom cursor position
-    if (customCursor) {
-        customCursor.style.left = coords.x + 'px';
-        customCursor.style.top = coords.y + 'px';
-    }
-    
     // Only process reveals if mouse is over the image area
     if (backgroundImage.style.display !== 'none') {
         const imgRect = backgroundImage.getBoundingClientRect();
         
         if (coords.x >= imgRect.left && coords.x <= imgRect.right && 
             coords.y >= imgRect.top && coords.y <= imgRect.bottom) {
+            
+            // Mouse is over image - do full processing
+            if (isMouseOutsideCanvas) {
+                isMouseOutsideCanvas = false;
+            }
             
             // Hide custom cursor when over canvas
             if (customCursor) {
@@ -147,21 +151,53 @@ function handleMouseMove(e) {
                 fillGapsBetweenPositions(lastCanvasX, lastCanvasY, canvasMouseX, canvasMouseY);
             }
         } else {
-            // Mouse is not over image, show custom cursor
-            if (customCursor) {
-                customCursor.style.display = 'block';
+            // Mouse is not over image - throttle updates for performance
+            if (!isMouseOutsideCanvas) {
+                isMouseOutsideCanvas = true;
             }
-            // Reset canvas coordinates
-            resetCanvasMouseCoordinates();
+            
+            const now = performance.now();
+            if (now - lastOutsideUpdate >= outsideUpdateThrottle) {
+                // Show custom cursor
+                if (customCursor) {
+                    customCursor.style.display = 'block';
+                    customCursor.style.left = coords.x + 'px';
+                    customCursor.style.top = coords.y + 'px';
+                }
+                // Reset canvas coordinates
+                resetCanvasMouseCoordinates();
+                lastOutsideUpdate = now;
+            }
+            
+            // Early return to avoid unnecessary processing when outside canvas
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            return;
         }
     } else {
-        // No image loaded yet, show custom cursor
-        if (customCursor) {
-            customCursor.style.display = 'block';
+        // No image loaded yet - throttle updates for performance
+        if (!isMouseOutsideCanvas) {
+            isMouseOutsideCanvas = true;
         }
+        
+        const now = performance.now();
+        if (now - lastOutsideUpdate >= outsideUpdateThrottle) {
+            // Show custom cursor
+            if (customCursor) {
+                customCursor.style.display = 'block';
+                customCursor.style.left = coords.x + 'px';
+                customCursor.style.top = coords.y + 'px';
+            }
+            lastOutsideUpdate = now;
+        }
+        
+        // Early return to avoid unnecessary processing when no image
+        lastMouseX = mouseX;
+        lastMouseY = mouseY;
+        return;
     }
     
-    // Update last position
+    // Update last position (only when processing image area)
     lastMouseX = mouseX;
     lastMouseY = mouseY;
 }
