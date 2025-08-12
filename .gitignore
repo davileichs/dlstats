@@ -61,3 +61,4 @@ env/
 *.ico
 images/
 img/
+last_generation.json

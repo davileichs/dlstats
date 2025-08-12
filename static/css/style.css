@@ -94,8 +94,8 @@ body {
     height: auto;
     object-fit: contain;
     z-index: 1;
-    /* Make image visible but non-interactive */
-    opacity: 1;
+    /* Start completely hidden to prevent flash of background */
+    opacity: 0;
     pointer-events: none;
     user-select: none;
     -webkit-user-select: none;
@@ -109,6 +109,7 @@ body {
     user-drag: none;
     /* Prevent touch scrolling and zooming on mobile */
     touch-action: none;
+    /* No transition to prevent any flash */
 }
 
 /* Canvas frame overlay - simple and clean */
@@ -173,6 +174,19 @@ body {
 .reveal-progress p {
     margin: 0;
     text-align: center;
+}
+
+/* Celebration state styling */
+.reveal-progress.celebration p {
+    color: #4CAF50;
+    font-size: 16px;
+    font-weight: bold;
+    animation: celebration-pulse 2s ease-in-out infinite;
+}
+
+@keyframes celebration-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
 }
 
 .info {

@@ -71,6 +71,13 @@ const frameInterval = 1000 / frameRate;
 let canvasOffsetX = 0;
 let canvasOffsetY = 0;
 
+// Full reveal animation state
+let isFullRevealActive = false;
+let fullRevealProgress = 0;
+let fullRevealStartTime = 0;
+let isFullRevealComplete = false; // Track if full reveal is permanently complete
+const FULL_REVEAL_DURATION = 2000; // 2 seconds for the full reveal animation
+
 // Initialize canvas
 function initCanvas() {
     // Set canvas to a reasonable initial size
@@ -80,10 +87,21 @@ function initCanvas() {
     // Ensure canvas context is properly set up
     ctx = canvas.getContext('2d');
     
-    // Make canvas completely hidden initially until image loads
-    canvas.style.opacity = '0';
-    canvas.style.visibility = 'hidden';
-    canvas.style.backgroundColor = 'transparent'; // No background, only drawn content
+    // Position canvas in center initially
+    canvas.style.position = 'absolute';
+    canvas.style.top = '50%';
+    canvas.style.left = '50%';
+    canvas.style.transform = 'translate(-50%, -50%)';
+    canvas.style.zIndex = '20';
+    
+    // Start with canvas visible and covering the initial area with black overlay
+    // This prevents any background image from being visible during page load
+    canvas.style.opacity = '1';
+    canvas.style.visibility = 'visible';
+    
+    // Draw initial black overlay to cover everything
+    ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
 // Handle window resize
@@ -393,6 +411,38 @@ function loadRevealedPositions() {
                 // Check if canvas dimensions match (for coordinate system compatibility)
                 if (data.canvasWidth === canvas.width && data.canvasHeight === canvas.height) {
                     revealedPositions = data.positions || [];
+                    
+                    // Check if image is already 100% revealed
+                    if (revealedPositions.length > 0) {
+                        const totalArea = canvas.width * canvas.height;
+                        const revealedArea = revealedPositions.length * Math.PI * Math.pow(permanentRevealRadius, 2);
+                        const percentage = Math.min((revealedArea / totalArea) * 100, 100);
+                        
+                        if (percentage >= 100) {
+                            // Image is already fully revealed, show it completely
+                            setTimeout(() => {
+                                // Don't set animation as active since it's already complete
+                                fullRevealProgress = 1;
+                                isFullRevealComplete = true; // Mark as permanently complete
+                                
+                                // Clear canvas to show full image
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Update percentage display (only if not already set to celebration)
+                                const percentageElement = document.getElementById('revealPercentage');
+                                if (percentageElement && !percentageElement.textContent.includes('🎉')) {
+                                    percentageElement.textContent = '🎉 100% revealed!';
+                                }
+                                
+                                // Add celebration styling
+                                const progressContainer = document.querySelector('.reveal-progress');
+                                if (progressContainer) {
+                                    progressContainer.classList.add('celebration');
+                                }
+                            }, 500); // Small delay to ensure everything is set up
+                        }
+                    }
+                    
                     return true;
                 } else {
                     // Canvas dimensions changed, clear old data
@@ -412,8 +462,29 @@ function resetSession() {
     try {
         localStorage.removeItem(STORAGE_KEY);
         revealedPositions = [];
+        resetFullRevealState();
     } catch (error) {
         // Error resetting session
+    }
+}
+
+// Reset full reveal animation state
+function resetFullRevealState() {
+    isFullRevealActive = false;
+    fullRevealProgress = 0;
+    fullRevealStartTime = 0;
+    isFullRevealComplete = false; // Reset this flag
+    
+    // Remove celebration styling
+    const progressContainer = document.querySelector('.reveal-progress');
+    if (progressContainer) {
+        progressContainer.classList.remove('celebration');
+    }
+    
+    // Reset percentage display
+    const percentageElement = document.getElementById('revealPercentage');
+    if (percentageElement) {
+        percentageElement.textContent = '0% revealed';
     }
 }
 
@@ -436,6 +507,11 @@ function updateRevealPercentage() {
     const percentageElement = document.getElementById('revealPercentage');
     if (!percentageElement) return;
     
+    // If full reveal is already complete, don't update percentage
+    if (isFullRevealComplete || fullRevealProgress >= 1) {
+        return;
+    }
+    
     if (backgroundImage.style.display !== 'none') {
         // Calculate total area of the canvas (which covers the image)
         const totalArea = canvas.width * canvas.height;
@@ -447,14 +523,99 @@ function updateRevealPercentage() {
         const percentage = Math.min((revealedArea / totalArea) * 100, 100);
         
         // Update display with 1 decimal place
-        percentageElement.textContent = percentage.toFixed(1) + '%';
+        percentageElement.textContent = percentage.toFixed(1) + '% revealed';
+        
+        // Trigger full reveal animation if 100% is reached
+        if (percentage >= 100 && !isFullRevealActive && fullRevealProgress < 1) {
+            isFullRevealActive = true;
+            isFullRevealComplete = false; // Reset flag for new animation
+            fullRevealStartTime = performance.now();
+            // Start the animation loop directly
+            animateFullReveal();
+        }
     } else {
         percentageElement.textContent = '0.0%';
     }
 }
 
+// Full reveal animation function
+function animateFullReveal() {
+    if (!isFullRevealActive) return;
+    
+    const currentTime = performance.now();
+    const elapsed = currentTime - fullRevealStartTime;
+    
+    if (elapsed >= FULL_REVEAL_DURATION) {
+        // Animation complete - fully reveal the image
+        isFullRevealActive = false;
+        fullRevealProgress = 1;
+        isFullRevealComplete = true; // Mark as permanently complete
+        
+        // Clear the canvas completely to show the full image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Update the percentage to show 100% (only if not already set to celebration)
+        const percentageElement = document.getElementById('revealPercentage');
+        if (percentageElement && !percentageElement.textContent.includes('🎉')) {
+            percentageElement.textContent = '🎉';
+        }
+        
+        // Add celebration styling
+        const progressContainer = document.querySelector('.reveal-progress');
+        if (progressContainer) {
+            progressContainer.classList.add('celebration');
+        }
+        
+        return; // Animation complete, stop the loop
+    }
+    
+    // Calculate animation progress (0 to 1)
+    fullRevealProgress = elapsed / FULL_REVEAL_DURATION;
+    
+    // Use easing function for smoother animation
+    const easedProgress = easeInOutCubic(fullRevealProgress);
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Fill with black overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Create a smooth reveal from top to bottom
+    // Use a sharp line for clean reveal effect
+    const revealY = canvas.height * easedProgress;
+    
+    // Clear the revealed portion (top part)
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillRect(0, 0, canvas.width, revealY);
+    
+    // Reset composite operation
+    ctx.globalCompositeOperation = 'source-over';
+    
+    // Continue animation loop
+    requestAnimationFrame(animateFullReveal);
+}
+
+// Easing function for smooth animation
+function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 // Draw the reveal mask
 function drawRevealMask() {
+    // If full reveal animation is active, don't interfere with it
+    if (isFullRevealActive) {
+        return; // Let the animation run independently
+    }
+    
+    // If full reveal is complete, keep the image fully revealed
+    if (isFullRevealComplete || fullRevealProgress >= 1) {
+        // Keep canvas completely clear to show the full image
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        return;
+    }
+    
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -547,14 +708,6 @@ function init() {
     // Show canvas frame immediately with default positioning
     showCanvasFrameDefault();
     
-    // Position canvas in center initially for testing
-    canvas.style.position = 'absolute';
-    canvas.style.top = '50%';
-    canvas.style.left = '50%';
-    canvas.style.transform = 'translate(-50%, -50%)';
-    canvas.style.zIndex = '20';
-    canvas.style.opacity = '0'; // Start hidden until image loads
-    
     // Prevent default browser behaviors that might allow dragging
     document.addEventListener('dragstart', function(e) { e.preventDefault(); });
     document.addEventListener('selectstart', function(e) { e.preventDefault(); });
@@ -619,11 +772,19 @@ async function checkImage() {
 // Load and display background image
 function loadBackgroundImage() {
     backgroundImage.onload = function() {
+        // Reset full reveal state for new image
+        isFullRevealActive = false;
+        fullRevealProgress = 0;
+        fullRevealStartTime = 0;
+        isFullRevealComplete = false; // Reset this flag
+        
+        // Show the background image first, but keep it hidden with CSS opacity
         backgroundImage.style.display = 'block';
+        backgroundImage.style.opacity = '0'; // Keep it invisible initially
         
         // Wait for the browser to finish positioning the image
         setTimeout(() => {
-            // Get image dimensions
+            // Get image dimensions and position
             const imgRect = backgroundImage.getBoundingClientRect();
             
             // Show and position canvas frame elements
@@ -656,10 +817,13 @@ function loadBackgroundImage() {
                 // Loaded saved positions
             }
             
+            // Now make the background image visible - it will be immediately covered by the canvas
+            backgroundImage.style.opacity = '1';
+            
             // Force a redraw after everything is set up
             setTimeout(() => {
                 drawRevealMask();
-            }, 200);
+            }, 100);
         }, 50); // Small delay to ensure proper positioning
     };
     
